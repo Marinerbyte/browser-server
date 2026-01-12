@@ -11,9 +11,7 @@ app.use(bodyParser.json());
 app.post("/task", async (req, res) => {
     const task = req.body;
 
-    if (!task.type || !task.query) {
-        return res.json({ error: "type and query required" });
-    }
+    if (!task.type || !task.query) return res.json({ error: "type and query required" });
 
     try {
         if (task.type === "audio") {
@@ -37,7 +35,7 @@ app.post("/task", async (req, res) => {
     }
 });
 
-// Cleanup endpoint (optional)
+// Cleanup endpoint
 app.post("/cleanup", async (req, res) => {
     try {
         await cleanupFiles();
