@@ -1,50 +1,45 @@
 const express = require("express");
-const { v4: uuid } = require("uuid");
 const fs = require("fs");
-const path = require("path");
 
-const { runTask } = require("./utils/downloader");
-const { startCleaner } = require("./utils/cleaner");
+const search = require("./search");
+const downloader = require("./downloader");
+require("./cleanup");
 
 const app = express();
 app.use(express.json());
 
-const TEMP = path.join(__dirname, "temp");
-if (!fs.existsSync(TEMP)) fs.mkdirSync(TEMP);
-
-// 🔁 background cleaner
-startCleaner(TEMP);
-
-// 🧠 ONE UNIVERSAL ENDPOINT
 app.post("/task", async (req, res) => {
-  const task = req.body;
-
-  if (!task || !task.type) {
-    return res.status(400).json({ error: "invalid task" });
-  }
-
-  const jobId = uuid();
-  const jobDir = path.join(TEMP, jobId);
-  fs.mkdirSync(jobDir);
-
   try {
-    const result = await runTask(task, jobDir);
+    const { type, query } = req.body;
 
-    // TEXT response
-    if (result.type === "text") {
-      fs.rmSync(jobDir, { recursive: true, force: true });
-      return res.json(result);
+    if (type === "text") {
+      const text = await search.searchText(query);
+      return res.json({ type: "text", content: text });
     }
 
-    // FILE response
-    res.sendFile(result.path, () => {
-      fs.rmSync(jobDir, { recursive: true, force: true });
-    });
+    if (type === "image") {
+      const imgUrl = await search.searchImage(query);
+      const file = await downloader.download(imgUrl, "jpg");
+      return res.sendFile(file);
+    }
 
-  } catch (e) {
-    fs.rmSync(jobDir, { recursive: true, force: true });
-    res.status(500).json({ error: "task failed" });
+    if (type === "news") {
+      const news = await search.searchNews(query);
+      return res.json({ type: "text", content: news });
+    }
+
+    if (type === "audio") {
+      return res.status(501).json({ error: "Audio downloader coming next step" });
+    }
+
+    res.status(400).json({ error: "Unknown task" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Browser server running on", PORT);
+});
