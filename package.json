@@ -1,7 +1,7 @@
 {
   "name": "browser-server",
   "version": "1.0.0",
-  "description": "Render-ready browser server for Howdies plugins",
+  "description": "Render-friendly browser server for Howdies plugins",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
