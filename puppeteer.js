@@ -1,14 +1,16 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require("puppeteer");
 
-async function runBrowserTask(url) {
-    const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+async function withBrowser(fn) {
+  const browser = await puppeteer.launch({
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  });
+
+  try {
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
-    const content = await page.content();
+    return await fn(page);
+  } finally {
     await browser.close();
-    return content;
+  }
 }
 
-module.exports = { runBrowserTask };
+module.exports = { withBrowser };
