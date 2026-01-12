@@ -1,23 +1,8 @@
-const search = require("./search");
-const downloader = require("./downloader");
+const { searchAudio } = require("./search");
 
-async function getSongMp3(songName) {
-  const result = await search.audio(songName);
-
-  if (!result || !result.url) {
-    throw new Error("Song not found");
-  }
-
-  const filePath = await downloader.downloadFromUrl(
-    result.url,
-    "mp3"
-  );
-
-  return {
-    file: filePath,
-    title: result.title || songName,
-    duration: result.duration || null
-  };
+async function getSongMp3(query) {
+  const result = await searchAudio(query);
+  return result;
 }
 
 module.exports = { getSongMp3 };
