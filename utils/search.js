@@ -1,57 +1,21 @@
-const { newPage } = require("./puppeteer");
-const { downloadFromUrl } = require("./downloader");
+const fetch = require("node-fetch");
 
 async function searchText(query) {
-  const page = await newPage();
-  try {
-    await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
-    const content = await page.evaluate(() => {
-      return document.body.innerText.slice(0, 3000);
-    });
-    return content;
-  } finally {
-    await page.close();
-  }
+    // Example: Wikipedia summary
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.extract || "No info found";
 }
 
 async function searchImage(query) {
-  const page = await newPage();
-  try {
-    await page.goto(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`);
-    const url = await page.evaluate(() => {
-      const img = document.querySelector("img");
-      return img ? img.src : null;
-    });
-    if (!url) throw new Error("No image found");
-    const file = await downloadFromUrl(url, "jpg");
-    return { file, title: query };
-  } finally {
-    await page.close();
-  }
-}
-
-async function searchAudio(query) {
-  const page = await newPage();
-  try {
-    await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}+mp3`);
-    const url = await page.evaluate(() => {
-      const link = document.querySelector("a[href$='.mp3']");
-      return link ? link.href : null;
-    });
-    if (!url) throw new Error("No mp3 found");
-    const file = await downloadFromUrl(url, "mp3");
-    return { file, title: query, duration: "unknown" };
-  } finally {
-    await page.close();
-  }
+    // Placeholder: can use Puppeteer scrape / Bing / Google Image API
+    return `https://via.placeholder.com/400?text=${encodeURIComponent(query)}`;
 }
 
 async function searchNews(query) {
-  return await searchText(query);
+    // Placeholder: basic news API call
+    return [`News result for ${query}`];
 }
 
-async function searchGif(query) {
-  return await searchImage(query);
-}
-
-module.exports = { searchText, searchImage, searchAudio, searchNews, searchGif };
+module.exports = { searchText, searchImage, searchNews };
