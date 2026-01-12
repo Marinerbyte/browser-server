@@ -1,21 +1,21 @@
 const fs = require("fs");
 const path = require("path");
 
-const TMP = "/tmp";
-const MAX_AGE = 5 * 60 * 1000;
+const TMP_DIR = "/tmp";
 
-function clean() {
-  const now = Date.now();
-
-  fs.readdirSync(TMP).forEach(file => {
-    const filePath = path.join(TMP, file);
-    try {
-      const stat = fs.statSync(filePath);
-      if (now - stat.mtimeMs > MAX_AGE) {
-        fs.unlinkSync(filePath);
-      }
-    } catch {}
+function cleanup() {
+  fs.readdir(TMP_DIR, (err, files) => {
+    if (err) return;
+    files.forEach(file => {
+      const filePath = path.join(TMP_DIR, file);
+      fs.stat(filePath, (err, stats) => {
+        if (err) return;
+        const age = Date.now() - stats.mtimeMs;
+        if (age > 5 * 60 * 1000) fs.unlink(filePath, () => {});
+      });
+    });
   });
 }
 
-setInterval(clean, 5 * 60 * 1000);
+// Run every 5 minutes
+setInterval(cleanup, 5 * 60 * 1000);
