@@ -3,14 +3,13 @@ const bodyParser = require("body-parser");
 const launchBrowser = require("./puppeteer");
 const { searchText, searchImage, searchNews } = require("./utils/search");
 const { downloadAudio, downloadImage } = require("./utils/downloader");
-const { cleanupFiles } = require("./utils/scleanup");
+const { cleanupFiles } = require("./utils/cleanup");
 
 const app = express();
 app.use(bodyParser.json());
 
 app.post("/task", async (req, res) => {
     const task = req.body;
-
     if (!task.type || !task.query) return res.json({ error: "type and query required" });
 
     try {
@@ -46,6 +45,4 @@ app.post("/cleanup", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Browser-server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Browser-server running on port ${PORT}`));
