@@ -1,45 +1,85 @@
 const express = require("express");
-const fs = require("fs");
+const bodyParser = require("body-parser");
 
-const search = require("./search");
-const downloader = require("./downloader");
-require("./cleanup");
+const audio = require("./utils/audio");
+const image = require("./utils/image");
+const text = require("./utils/text");
+
+// cleanup auto-start
+require("./utils/cleanup");
 
 const app = express();
-app.use(express.json());
+app.use(bodyParser.json());
+
+/*
+ Expected JSON from plugin:
+
+ {
+   "type": "audio" | "image" | "text",
+   "query": "song name / image name / info text"
+ }
+*/
 
 app.post("/task", async (req, res) => {
   try {
     const { type, query } = req.body;
 
-    if (type === "text") {
-      const text = await search.searchText(query);
-      return res.json({ type: "text", content: text });
+    if (!type || !query) {
+      return res.status(400).json({
+        error: "type and query required"
+      });
     }
 
-    if (type === "image") {
-      const imgUrl = await search.searchImage(query);
-      const file = await downloader.download(imgUrl, "jpg");
-      return res.sendFile(file);
+    switch (type) {
+      case "audio": {
+        const result = await audio.getSongMp3(query);
+
+        return res.json({
+          type: "audio",
+          file: result.file,
+          title: result.title,
+          duration: result.duration
+        });
+      }
+
+      case "image": {
+        const result = await image.getImage(query);
+
+        return res.json({
+          type: "image",
+          file: result.file,
+          title: result.title
+        });
+      }
+
+      case "text": {
+        const result = await text.getText(query);
+
+        return res.json({
+          type: "text",
+          content: result
+        });
+      }
+
+      default:
+        return res.status(400).json({
+          error: "Unknown type"
+        });
     }
-
-    if (type === "news") {
-      const news = await search.searchNews(query);
-      return res.json({ type: "text", content: news });
-    }
-
-    if (type === "audio") {
-      return res.status(501).json({ error: "Audio downloader coming next step" });
-    }
-
-    res.status(400).json({ error: "Unknown task" });
-
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Browser Server Error:", err.message);
+    return res.status(500).json({
+      error: err.message
+    });
   }
+});
+
+/* Health check */
+app.get("/", (req, res) => {
+  res.send("Browser Server is running");
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Browser server running on", PORT);
+  console.log("Browser Server running on port", PORT);
 });
