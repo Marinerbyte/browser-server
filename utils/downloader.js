@@ -1,22 +1,17 @@
 const fs = require("fs");
-const path = require("path");
 const fetch = require("node-fetch");
-const { v4: uuid } = require("uuid");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
-const TMP = "/tmp";
-
-async function download(url, ext) {
+async function downloadFromUrl(url, ext = "tmp") {
   const res = await fetch(url);
-  const file = path.join(TMP, `${uuid()}.${ext}`);
-  const stream = fs.createWriteStream(file);
+  if (!res.ok) throw new Error("Download failed");
 
-  await new Promise((resolve, reject) => {
-    res.body.pipe(stream);
-    res.body.on("error", reject);
-    stream.on("finish", resolve);
-  });
-
-  return file;
+  const buffer = await res.arrayBuffer();
+  const filename = `${uuidv4()}.${ext}`;
+  const filepath = path.join("/tmp", filename);
+  fs.writeFileSync(filepath, Buffer.from(buffer));
+  return filepath;
 }
 
-module.exports = { download };
+module.exports = { downloadFromUrl };
