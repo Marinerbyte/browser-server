@@ -1,0 +1,13 @@
+{
+  "name": "browser-server",
+  "version": "1.0.0",
+  "description": "Minimal browser server for plugins",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "puppeteer": "^23.3.0"
+  }
+}
