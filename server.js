@@ -1,38 +1,53 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-
-const { getSongMp3 } = require("./utils/audio");
-const { getImage } = require("./utils/image");
-const { getText } = require("./utils/text");
-
-// cleanup auto-start
-require("./utils/cleanup");
+const launchBrowser = require("./puppeteer");
+const { searchText, searchImage, searchNews } = require("./utils/search");
+const { downloadAudio, downloadImage } = require("./utils/downloader");
+const { cleanupFiles } = require("./utils/scleanup");
 
 const app = express();
 app.use(bodyParser.json());
 
 app.post("/task", async (req, res) => {
-  try {
-    const { type, query } = req.body;
-    if (!type || !query) return res.status(400).json({ error: "type and query required" });
+    const task = req.body;
 
-    switch (type) {
-      case "audio":
-        return res.json(await getSongMp3(query));
-      case "image":
-        return res.json(await getImage(query));
-      case "text":
-        return res.json({ type: "text", content: await getText(query) });
-      default:
-        return res.status(400).json({ error: "Unknown type" });
+    if (!task.type || !task.query) {
+        return res.json({ error: "type and query required" });
     }
-  } catch (err) {
-    console.error("Browser Server Error:", err.message);
-    return res.status(500).json({ error: err.message });
-  }
+
+    try {
+        if (task.type === "audio") {
+            const filePath = await downloadAudio(task.query);
+            return res.json({ type: "audio", file: filePath });
+        } else if (task.type === "image") {
+            const filePath = await downloadImage(task.query);
+            return res.json({ type: "image", file: filePath });
+        } else if (task.type === "info") {
+            const text = await searchText(task.query);
+            return res.json({ type: "text", content: text });
+        } else if (task.type === "news") {
+            const news = await searchNews(task.query);
+            return res.json({ type: "news", content: news });
+        } else {
+            return res.json({ error: "Invalid task type" });
+        }
+    } catch (err) {
+        console.error("Task Error:", err);
+        return res.json({ error: err.message });
+    }
 });
 
-app.get("/", (req, res) => res.send("Browser Server running"));
+// Cleanup endpoint (optional)
+app.post("/cleanup", async (req, res) => {
+    try {
+        await cleanupFiles();
+        res.json({ status: "done" });
+    } catch (err) {
+        res.json({ error: err.message });
+    }
+});
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Browser Server running on port", PORT));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Browser-server running on port ${PORT}`);
+});
